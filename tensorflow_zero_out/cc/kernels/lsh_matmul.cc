@@ -169,22 +169,17 @@ class MklMatMulOp : public OpKernel {
         if (_randBits[p][j] >= 0) {
           s += v;
         }
-        else {
+        else
           s -= v;
-        }
         i++;
         j++;
       }
-      else if (indices[i] < _indices[p][j]) {
+      else if (indices[i] < _indices[p][j])
         i++;
-      }
-      else {
+      else
         j++;
-      }
-    }
+    } 
     hashes[p] = (s >= 0 ? 0 : 1);
-    }
-
     return hashes;
   }
 
