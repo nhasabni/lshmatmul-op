@@ -19,15 +19,15 @@ limitations under the License.
 using namespace tensorflow;
 
 REGISTER_OP("LshMatmul")
-    .Input("a: T")
-    .Input("b: T")
-    .Input("l: Ref(T)")
-    .Input("r: Ref(T)")
-    .Input("i: Ref(T)")
-    .Input("w: Ref(T)")
+    .Input("a: T") // input
+    .Input("an: T") // activeNodesPerLAyer 
+    .Input("av: T") // activeValues
+    .Input("l: T") // length
+    .Input("i: T") // indices
+    .Input("w: T") // weights
+    .Input("in: T") // inputID
     .Output("product: T")
     .Attr("transpose_a: bool = false")
-    .Attr("transpose_b: bool = false")
     .Attr(
         "T: {bfloat16, half, float, double, int32, int64, complex64, "
         "complex128}")
