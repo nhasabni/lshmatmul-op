@@ -28,116 +28,109 @@ class MklMatMulOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("transpose_b", &transpose_b_));
   }
 
-#define PADDING 4
+  #define PADDING 4
+  #define BISINIT 0
+  #define BINDEX 1
+  #define BCOUNT 2
 
-#define BISINIT 0
-#define BINDEX 1
-#define BCOUNT 2
 
+  int Bucket_add(int id, int l, int idx, int L, int RangePow, int BUCKETSIZE,
+                 double *lsh_table) {
 
-    int Bucket_add(int id, int l, int idx, int L, int RangePow, int BUCKETSIZE,
-                   double *lsh_table) {
-
-        double &_count = lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
-			 + idx * (BUCKETSIZE + PADDING) + BUCKETSIZE + BCOUNT];
-        double &_isInit = lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
-                          + idx * (BUCKETSIZE + PADDING) + BUCKETSIZE + BISINIT];
-        double &_index = lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
-                         + idx * (BUCKETSIZE + PADDING) + BUCKETSIZE + BINDEX];
+    double &_count = lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
+                     + idx * (BUCKETSIZE + PADDING) + BUCKETSIZE + BCOUNT];
+    double &_isInit = lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
+                      + idx * (BUCKETSIZE + PADDING) + BUCKETSIZE + BISINIT];
+    double &_index = lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
+                     + idx * (BUCKETSIZE + PADDING) + BUCKETSIZE + BINDEX];
     //    if (FIFO) {
-            _isInit += 1; // local to bucket, not used yet
-            int index = _counts & (BUCKETSIZE - 1);
-            _counts++; // local to each layer
-            lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING) +
-                idx * (BUCKETSIZE + PADDING)  + index] = id;
-            return index;
+    _isInit += 1; // local to bucket, not used yet
+    int index = _counts & (BUCKETSIZE - 1);
+    _counts++; // local to each layer
+    lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING) +
+      idx * (BUCKETSIZE + PADDING)  + index] = id;
+    return index;
     //    }
-     }
-
-    int* LSH_add(int *indices, int id, int _L)
-    {
-        int * secondIndices = new int[_L];
-        for (int i = 0; i < _L; i++)
-        {
-            //secondIndices[i] = _bucket[i][indices[i]].add(id);
-            secondIndices[i] = Bucket_add(id, i, indices[i], _L, RangePow,
-                                          BUCKETSIZE, lsh_table);
-        }
-
-        return secondIndices;
     }
 
-    int* LSH_hashesToIndex(int * hashes, int _L, int _K)
-    {
-
-        int * indices = new int[_L];
-        for (int i = 0; i < _L; i++)
-        {
-            unsigned int index = 0;
-
-            for (int j = 0; j < _K; j++)
-            {
-
-                if (HashFunction==4){
-                    unsigned int h = hashes[_K*i + j];
-                    index += h<<(_K-1-j);
-                }
-//              else if (HashFunction==1 | HashFunction==2){
-//                  unsigned int h = hashes[_K*i + j];
-//                  index += h<<((_K-1-j)*(int)floor(log(binsize)));
-//                  }
-//                  else {
-//                    unsigned int h = rand1[_K*i + j];
-//                    h *= rand1[_K * i + j];
-//                    h ^= h >> 13;
-//                    h ^= rand1[_K * i + j];
-//                    index += h * hashes[_K * i + j];
-//                  }
-            }
-//          if (HashFunction==3) {
-//            index = index&((1<<_RangePow)-1);
-//          }
-            indices[i] = index;
-        }
-
-        return indices;
+  int* LSH_add(int *indices, int id, int _L) {
+    int * secondIndices = new int[_L];
+    for (int i = 0; i < _L; i++) {
+      //secondIndices[i] = _bucket[i][indices[i]].add(id);
+      secondIndices[i] = Bucket_add(id, i, indices[i], _L, RangePow,
+                                    BUCKETSIZE, lsh_table);
     }
 
-    // Needs to be modified
-    int * Bucket_getAll(int l, int idx, int L, int RangePow, int BUCKETSIZE,
-                        double *lsh_table) {
+    return secondIndices;
+  }
 
-        double &_count = lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
-                         + idx * (BUCKETSIZE + PADDING) + BUCKETSIZE + BCOUNT];
-        double &_isInit = lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
-                          + idx * (BUCKETSIZE + PADDING) + BUCKETSIZE + BISINIT];
-        double &_index = lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
-                         + idx * (BUCKETSIZE + PADDING) + BUCKETSIZE + BINDEX];
-
-        if (_isInit == -1)
-            return NULL;
-        if(_count<BUCKETSIZE) {
-          lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
-          + idx * (BUCKETSIZE + PADDING)  + _count] = -1;
+  int* LSH_hashesToIndex(int * hashes, int _L, int _K) {
+  
+    int * indices = new int[_L];
+    for (int i = 0; i < _L; i++) {
+      unsigned int index = 0;
+      for (int j = 0; j < _K; j++) {
+        if (HashFunction==4) {
+          unsigned int h = hashes[_K*i + j];
+          index += h<<(_K-1-j);
         }
-        return lsh_table;
+//      else if (HashFunction==1 | HashFunction==2){
+//        unsigned int h = hashes[_K*i + j];
+//        index += h<<((_K-1-j)*(int)floor(log(binsize)));
+//      }
+//      else {
+//        unsigned int h = rand1[_K*i + j];
+//        h *= rand1[_K * i + j];
+//        h ^= h >> 13;
+//        h ^= rand1[_K * i + j];
+//        index += h * hashes[_K * i + j];
+//      }
+      }
+//    if (HashFunction==3) {
+//      index = index&((1<<_RangePow)-1);
+//    }
+      indices[i] = index;
     }
 
-    /*
-    * Returns all the buckets
-    */
-    int** LSH_retrieveRaw(int *indices, int _L, int RangePow, int BUCKETSIZE,
+    return indices;
+  }
+
+  // Needs to be modified
+  int * Bucket_getAll(int l, int idx, int L, int RangePow, int BUCKETSIZE,
+                      double *lsh_table) {
+
+    double &_count = lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
+                     + idx * (BUCKETSIZE + PADDING) + BUCKETSIZE + BCOUNT];
+    double &_isInit = lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
+                      + idx * (BUCKETSIZE + PADDING) + BUCKETSIZE + BISINIT];
+    double &_index = lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
+                      + idx * (BUCKETSIZE + PADDING) + BUCKETSIZE + BINDEX];
+
+    if (_isInit == -1)
+      return NULL;
+
+    if(_count<BUCKETSIZE) {
+      lsh_table[l * (RangePow << 1) * (BUCKETSIZE + PADDING)
+      + idx * (BUCKETSIZE + PADDING)  + _count] = -1;
+    }
+    return lsh_table;
+  }
+
+  /*
+  * Returns all the buckets
+  */
+  int** LSH_retrieveRaw(int *indices, int _L, int RangePow, int BUCKETSIZE,
                           double * lsh_table) {
-        int ** rawResults = new int*[_L];
-        int count = 0;
+    int ** rawResults = new int*[_L];
+    int count = 0;
 
-        for (int i = 0; i < _L; i++) {
-          // update to tensor part
-          // rawResults[i] = _bucket[i][indices[i]].getAll();
-          rawResults[i] = Bucket_getAll(i, indices[i], _L, RangePow, BUCKETSIZE, lsh_table);
-        }
-        return rawResults;
+    for (int i = 0; i < _L; i++) {
+      // update to tensor part
+      // rawResults[i] = _bucket[i][indices[i]].getAll();
+      rawResults[i] = Bucket_getAll(i, indices[i], _L, RangePow, BUCKETSIZE, lsh_table);
     }
+    return rawResults;
+  }
 
   int* getHash(float *vector, int length, int **_indices, int **_randBits,
                int _numhashes) {
@@ -163,38 +156,37 @@ class MklMatMulOp : public OpKernel {
   }
 
 
-    int* getHashSparse(int* indices, float *values, int length, int **_indices,
-                       int **_randBits, int _numhashes) {
-      int *hashes = new int[_numhashes];
-
-      for (int p = 0; p < _numhashes; p++) {
-          double s = 0;
-          int i = 0;
-          int j = 0;
-          while (i < length & j < _samSize) {
-            if (indices[i] == _indices[p][j]) {
-              float v = values[i];
-              if (_randBits[p][j] >= 0) {
-                s += v;
-              }
-              else {
-                s -= v;
-              }
-              i++;
-              j++;
-            }
-            else if (indices[i] < _indices[p][j]){
-              i++;
-            }
-            else {
-              j++;
-            }
-          }
-          hashes[p] = (s >= 0 ? 0 : 1);
-       }
-
-       return hashes;
+  int* getHashSparse(int* indices, float *values, int length, int **_indices,
+                     int **_randBits, int _numhashes) {
+    int *hashes = new int[_numhashes];
+    for (int p = 0; p < _numhashes; p++) {
+      double s = 0;
+      int i = 0;
+      int j = 0;
+      while (i < length & j < _samSize) {
+        if (indices[i] == _indices[p][j]) {
+        float v = values[i];
+        if (_randBits[p][j] >= 0) {
+          s += v;
+        }
+        else {
+          s -= v;
+        }
+        i++;
+        j++;
+      }
+      else if (indices[i] < _indices[p][j]) {
+        i++;
+      }
+      else {
+        j++;
+      }
     }
+    hashes[p] = (s >= 0 ? 0 : 1);
+    }
+
+    return hashes;
+  }
 
   int queryActiveNodeandComputeActivations(int** activenodesperlayer,
                                            float** activeValuesperlayer,
