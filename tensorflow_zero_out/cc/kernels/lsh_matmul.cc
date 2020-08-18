@@ -28,7 +28,7 @@ class MklMatMulOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("transpose_b", &transpose_b_));
   }
 
-  #define PADDING 4
+#define PADDING 4
 
 #define BISINIT 0
 #define BINDEX 1
@@ -143,7 +143,7 @@ class MklMatMulOp : public OpKernel {
                int _numhashes) {
 
     int *hashes = new int[_numhashes];
-
+    _samSize = ceil(1.0*vector / Ratio);
 // #pragma omp parallel for
     for (int i = 0; i < _numhashes; i++) {
       double s = 0;
@@ -391,15 +391,6 @@ void Compute(OpKernelContext* ctx) override {
         {a.dim_size(a_dim_remaining), b.dim_size(b_dim_remaining)});
     Tensor* out = nullptr;
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, out_shape, &out));
-/*	
-	int K, L;
-	K = 128;
-	L = 1;
-	TensorShape lsh_shape(
-        {L, K});
-	Tensor* lsh = nullptr;
-	OP_REQUIRES_OK(ctx, ctx->allocate_output(1, lsh_shape, &lsh));
-*/
     if (out->NumElements() == 0) {
       // If a has shape [0, x] or b has shape [x, 0], the output shape
       // is a 0-element matrix, so there is nothing to do.
@@ -424,33 +415,6 @@ void Compute(OpKernelContext* ctx) override {
     auto a_ptr = (a.template flat<T>().data());
     auto b_ptr = (b.template flat<T>().data());
     auto c_ptr = (out->template flat<T>().data());
-	
-/*
-    K = 2
-    L = 20    RangePow = 6
-    Sparsity = 1
-    NumberofNodes = 128    
-    PrevNumNode = 135909 # for fisrt layer, this is input dim
-    BUCKETSIZE = 128
-   self.bucket_arr = self.add_weight(
-        'Sbkt',
-        shape=[L, RangePow, (BUCKETSIZE + 4)]
-
-    self.randBits = self.add_weight(
-        'SlRnd',
-        shape=[_numhashes, _samSize],
-
-    self.indices = self.add_weight(
-      'SlInd',
-      shape=[_numhashes, _samSize],
-
-    self.weight = self.add_weight(
-        'SlW',
-        shape=[32,],
-
-
-*/
-//	auto v_ptr = (v.template flat<T>().data());
 
     auto bucket_arr = (v1.template flat<T>().data());
     auto  weights= (v4.template flat<T>().data());
@@ -472,8 +436,6 @@ void Compute(OpKernelContext* ctx) override {
              b_ptr, transpose_b ? k : n, c_ptr, n);
     
   }
-
-
 
 };
 
