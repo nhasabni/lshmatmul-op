@@ -329,28 +329,6 @@ class MklMatMulOp : public OpKernel {
     return in;
 }
 
-/*
-  int* getHash(float vector, int length, int _indices, int _randBits, int _numhashes) {
-    // length should be = to _dim
-        int *hashes = new int[_numhashes];
-        _samSize = ceil(1.0*vector / Ratio);
-     // #pragma omp parallel for
-        for (int i = 0; i < _numhashes; i++) {
-            double s = 0;
-            for (size_t j = 0; j < _samSize; j++) {
-                float v = vector[_indices[i][j]];
-                if (_randBits[i][j] >= 0) {
-                    s += v;
-                } else {
-                    s -= v;
-                }
-            }
-            hashes[i] = (s >= 0 ? 0 : 1);
-        }
-        return hashes;
-    }
-*/
-
 void Compute(OpKernelContext* ctx) override {
     const Tensor& a = ctx->input(0);
     const Tensor& b = ctx->input(1);
