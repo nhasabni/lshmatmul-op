@@ -28,7 +28,7 @@ class MklMatMulOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("transpose_b", &transpose_b_));
   }
 
-  #define PADDING 4
+#define PADDING 4
 
 #define BISINIT 0
 #define BINDEX 1
