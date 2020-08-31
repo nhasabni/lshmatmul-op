@@ -38,6 +38,8 @@ class MklMatMulOp : public OpKernel {
 #define _numhashes 
 #define _noOfNodes 
 
+  int Bucket_add(int id, int l, int idx, int L, int RangePow, int BUCKETSIZE,
+                 double *lsh_table) {
 
   int getHashSparse(int* indices, float *values, int length) {
     int *hashes = new int[_numhashes];
@@ -66,6 +68,8 @@ class MklMatMulOp : public OpKernel {
         }
         hashes[p] = (s >= 0 ? 0 : 1);
     }
+    return rawResults;
+  }
 
     return hashes;
   }
