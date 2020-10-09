@@ -89,6 +89,11 @@ class MklMatMulOp : public OpKernel {
     return indices;
   }
 
+  int add(int tableId, int indices, int id) {
+	int secondIndices = _bucket[tableId][indices].add(id);
+	return secondIndices;
+  }
+
   int getHash(float *vector, int length) {
     // length should be = to _dim
     int *hashes = new int[_numhashes];
