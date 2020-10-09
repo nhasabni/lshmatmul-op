@@ -89,6 +89,26 @@ class MklMatMulOp : public OpKernel {
     return indices;
   }
 
+  int getHash(float *vector, int length) {
+    // length should be = to _dim
+    int *hashes = new int[_numhashes];
+
+ // #pragma omp parallel for
+    for (int i = 0; i < _numhashes; i++) {
+        double s = 0;
+        for (size_t j = 0; j < _samSize; j++) {
+            float v = vector[_indices[i][j]];
+            if (_randBits[i][j] >= 0) {
+                s += v;
+            } else {
+                s -= v;
+            }
+        }
+        hashes[i] = (s >= 0 ? 0 : 1);
+    }
+    return hashes;
+}
+
   int** retrieveRaw(int *indices) {
     int ** rawResults = new int*[_L];
     int count = 0;
