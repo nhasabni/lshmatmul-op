@@ -23,3 +23,21 @@ And you should see the op zeroed out all input elements except the first one:
 [[1 0]
  [0 0]]
 ```
+
+# LSH-MatMul build and test (WIP)
+
+Build the pip package with make as:
+```bash
+   make lsh_matmul_pip_pkg
+```
+Install the pip package as:
+```bash
+   pip3 install artifacts/*.whl
+```
+Test lsh_matmul op as:
+```bash
+TODO
+```
+And you should see the output as:
+```bash
+```
