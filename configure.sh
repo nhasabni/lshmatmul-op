@@ -89,7 +89,7 @@ done
 if [[ "$TF_NEED_CUDA" == "0" ]]; then
 
   # Check if it's installed
-  if [[ $(${PIP} show tensorflow) == *tensorflow* ]] || [[ $(${PIP} show tf-nightly) == *tf-nightly* ]] ; then
+  if [[ $(${PIP} show tensorflow-cpu) == *tensorflow* ]] || [[ $(${PIP} show tf-nightly) == *tf-nightly* ]] ; then
     echo 'Using installed tensorflow'
   else
     # Uninstall GPU version if it is installed.
