@@ -7,10 +7,11 @@ import tensorflow as tf
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import sparse_ops
-inner_product_grad_module = tf.load_op_library('lsh_matmul_grad.so')
+inner_product_grad_module = tf.load_op_library('./lsh_matmul_grad.so')
 
 @ops.RegisterGradient("LshMatmul")
-def _lsh_matmul_grad_cc(op, grad):
+#def _lsh_matmul_grad_cc(op, grad):
+def lsh_matmul_grad(op, grad):
     """
     The gradient for `lsh_matmul` using the operation implemented in C++.
     
@@ -24,7 +25,9 @@ def _lsh_matmul_grad_cc(op, grad):
 
 # uncomment this and comment the corresponding line above to use the Python
 # implementation of the inner product gradient
+#
 #@ops.RegisterGradient("LshMatmul")
+'''
 def _lsh_matmul_grad(op, grad):
     """
     The gradients for `lsh_matmul`.
@@ -44,3 +47,4 @@ def _lsh_matmul_grad(op, grad):
     grad_weights = tf.multiply(tf.transpose(grad), tf.reshape(tf.tile(tf.reshape(input_tensor, [input_rows]), [output_rows]), [output_rows, -1]))
     
     return [tf.transpose(grad_input), grad_weights]
+    '''

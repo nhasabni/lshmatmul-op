@@ -8,11 +8,11 @@ using namespace tensorflow;
 /// this is not possible in C*+ right now.
 /// \param context
 /// \author David Stutz
-class lshMatMulGradOp : public OpKernel {
+class lshMatmulGradOp : public OpKernel {
 public:
   /// \brief Constructor.
   /// \param context
-  explicit lshMatMulGradOp(OpKernelConstruction* context) : OpKernel(context) {
+  explicit lshMatmulGradOp(OpKernelConstruction* context) : OpKernel(context) {
     
   }
   
@@ -68,4 +68,4 @@ public:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("lshMatMulGrad").Device(DEVICE_CPU), lshMatMulGradOp);
+REGISTER_KERNEL_BUILDER(Name("lshMatmulGrad").Device(DEVICE_CPU), lshMatmulGradOp);

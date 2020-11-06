@@ -1,9 +1,9 @@
 import unittest
 import numpy as np
 import tensorflow as tf
-import _lsh_matmul_grad
+import lsh_matmul_grad
 
-lsh_matmul_module = tf.load_op_library('_lsh_matmul_op.so')
+lsh_matmul_module = tf.load_op_library('./_lsh_matmul_op.so')
 
 class LshMatmulTest(unittest.TestCase):
     def test_raisesExceptionWithIncompatibleDimensions(self):
