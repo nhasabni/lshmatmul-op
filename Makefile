@@ -48,7 +48,6 @@ lsh_matmul_test: lsh_matmul/python/ops/lsh_matmul_op_test.py lsh_matmul/python/o
 lsh_matmul_pip_pkg: $(LSH_MATMUL_TARGET_LIB) $(LSH_MATMUL_GRAD_TARGET_LIB)
 	./build_pip_pkg.sh make artifacts
 
-#
 clean:
 	rm -f $(LSH_MATMUL_TARGET_LIB) $(LSH_MATMUL_GRAD_TARGET_LIB)
     #rm -f $(LSH_MATMUL_TARGET_LIB) $(LSH_MATMUL_GRAD_TARGET_LIB)

@@ -18,6 +18,7 @@ limitations under the License.
 #include "tensorflow/core/platform/default/logging.h"
 #include "tensorflow/core/framework/shape_inference.h"
 
+
 using namespace tensorflow;
 /*
 REGISTER_OP("LshMatmul")

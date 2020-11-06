@@ -3,6 +3,7 @@
 
 using namespace tensorflow;
 
+
 /// \brief Implementation of an inner product gradient operation.
 /// Note that this operation is used in Python to register the gradient as
 /// this is not possible in C*+ right now.

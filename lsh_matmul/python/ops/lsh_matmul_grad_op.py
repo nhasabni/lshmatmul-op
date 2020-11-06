@@ -9,6 +9,7 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import sparse_ops
 inner_product_grad_module = tf.load_op_library('./lsh_matmul_grad.so')
 
+
 @ops.RegisterGradient("LshMatmul")
 #def _lsh_matmul_grad_cc(op, grad):
 def lsh_matmul_grad(op, grad):

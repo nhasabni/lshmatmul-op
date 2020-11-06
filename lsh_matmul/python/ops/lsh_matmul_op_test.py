@@ -3,6 +3,8 @@ import numpy as np
 import tensorflow as tf
 import lsh_matmul_grad
 
+
+
 lsh_matmul_module = tf.load_op_library('./_lsh_matmul_op.so')
 
 class LshMatmulTest(unittest.TestCase):

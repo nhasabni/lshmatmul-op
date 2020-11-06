@@ -243,7 +243,8 @@ void Compute(OpKernelContext* ctx) override {
 
 /// \brief Implementation of an inner product operation.
 /// \param context
-/// \author David Stutz
+
+
 class LshMatmulOp : public OpKernel {
 public:
   /// \brief Constructor.
