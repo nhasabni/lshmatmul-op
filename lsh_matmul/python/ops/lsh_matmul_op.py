@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-"""Use zero_out ops in python."""
+"""Use lsh_matmul ops in python."""
 
 from __future__ import absolute_import
 from __future__ import division

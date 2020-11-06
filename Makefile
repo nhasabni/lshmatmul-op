@@ -13,6 +13,7 @@ LDFLAGS = -shared ${TF_LFLAGS}
 
 ZERO_OUT_TARGET_LIB = tensorflow_zero_out/python/ops/_zero_out_ops.so
 LSH_MATMUL_TARGET_LIB = lsh_matmul/python/ops/_lsh_matmul_op.so
+#LSH_MATMUL_GRAD_TARGET_LIB = lsh_matmul/python/ops/_lsh_matmul_grad_op.so
 
 # zero_out op for CPU
 zero_out_op: $(ZERO_OUT_TARGET_LIB)
@@ -28,9 +29,13 @@ zero_out_pip_pkg: $(ZERO_OUT_TARGET_LIB)
 
 # LSH MatMul op
 lsh_matmul_op: $(LSH_MATMUL_TARGET_LIB)
+#lsh_matmul_grad_op: $(LSH_MATMUL_GRAD_TARGET_LIB)
 
 $(LSH_MATMUL_TARGET_LIB): $(LSH_MATMUL_SRCS)
 	$(CXX) $(CFLAGS) -o $@ $^ ${LDFLAGS}
+    
+#$(LSH_MATMUL_GRAD_TARGET_LIB): $(LSH_MATMUL_SRCS)
+#	$(CXX) $(CFLAGS) -o $@ $^ ${LDFLAGS}
 
 lsh_matmul_test: lsh_matmul/python/ops/lsh_matmul_op_test.py lsh_matmul/python/ops/lsh_matmul_op.py $(LSH_MATMUL_TARGET_LIB)
 	$(PYTHON_BIN_PATH) lsh_matmul/python/ops/lsh_matmul_op_test.py
