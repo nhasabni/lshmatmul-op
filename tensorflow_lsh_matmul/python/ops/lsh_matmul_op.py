@@ -23,6 +23,6 @@ from tensorflow.python.framework import load_library
 from tensorflow.python.platform import resource_loader
 
 lsh_matmul_op = load_library.load_op_library(
-    resource_loader.get_path_to_datafile('./_lsh_matmul_op.so'))
-lsh_out = lsh_matmul_op.lsh_matmul
+    resource_loader.get_path_to_datafile('_lsh_matmul_op.so'))
+lsh_matmul = lsh_matmul_op.lsh_matmul
 

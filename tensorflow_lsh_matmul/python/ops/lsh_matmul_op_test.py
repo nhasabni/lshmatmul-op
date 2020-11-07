@@ -1,36 +1,39 @@
-import unittest
 import numpy as np
 import tensorflow as tf
-import lsh_matmul_grad
+from tensorflow.python.platform import test
+#import lsh_matmul_grad
 
+try:
+  from tensorflow_lsh_matmul.python.ops.lsh_matmul_op import lsh_matmul
+except ImportError:
+  from lsh_matmul_op import lsh_matmul
 
+#lsh_matmul_module = tf.load_op_library('./_lsh_matmul_op.so')
 
-lsh_matmul_module = tf.load_op_library('./_lsh_matmul_op.so')
-
-class LshMatmulTest(unittest.TestCase):
+class LshMatmulTest(test.TestCase):
     def test_raisesExceptionWithIncompatibleDimensions(self):
-        with tf.Session(''):
+        with self.test_session():
             with self.assertRaises(ValueError):
-                lsh_matmul_module.lsh_matmul([1, 2], [[1, 2], [3, 4]]).eval()
+                lsh_matmul([1, 2], [[1, 2], [3, 4]]).eval()
             with self.assertRaises(ValueError):
-                self.assertRaises(lsh_matmul_module.lsh_matmul([1, 2], [1, 2, 3, 4]).eval(), ValueError)
+                self.assertRaises(lsh_matmul([1, 2], [1, 2, 3, 4]).eval(), ValueError)
             with self.assertRaises(ValueError):
-                self.assertRaises(lsh_matmul_module.lsh_matmul([1, 2, 3], [[1, 2], [3, 4]]).eval(), ValueError)
+                self.assertRaises(lsh_matmul([1, 2, 3], [[1, 2], [3, 4]]).eval(), ValueError)
             
     def test_lshMatMulHardCoded(self):
-        with tf.Session(''):
-            result = lsh_matmul_module.lsh_matmul([[1], [2]], [[1, 2], [3, 4]]).eval()
+        with self.test_session():
+            result = lsh_matmul([[1], [2]], [[1, 2], [3, 4]]).eval()
             self.assertEqual(result.shape[0], 2)
             self.assertEqual(result[0], 5)
             self.assertEqual(result[1], 11)
     
     def test_lshMatMulGradientXHardCoded(self):
-        with tf.Session('') as sess:
+        with self.test_session() as sess:
             x = tf.placeholder(tf.float32, shape = (2))
             W = tf.constant(np.asarray([[1, 2], [3, 4]]).astype(np.float32))
             
             Wx_tf = tf.matmul(W, tf.reshape(x, [-1, 1]))
-            Wx_lsh_matmul = lsh_matmul_module.lsh_matmul(tf.reshape(x, [-1, 1]), W)
+            Wx_lsh_matmul = lsh_matmul(tf.reshape(x, [-1, 1]), W)
             
             grad_x_tf = tf.gradients(Wx_tf, x)
             grad_x_lsh_matmul = tf.gradients(Wx_lsh_matmul, x)
@@ -42,12 +45,12 @@ class LshMatmulTest(unittest.TestCase):
             self.assertEqual(gradient_tf[0][1], gradient_lsh_matmul[0][1])
     
     def test_lshMatMulGradientWHardCoded(self):
-        with tf.Session('') as sess:
+        with self.test_session() as sess:
             x = tf.constant(np.asarray([1, 2]).astype(np.float32))
             W = tf.placeholder(tf.float32, shape = (2, 2))
             
             Wx_tf = tf.matmul(W, tf.reshape(x, [-1, 1]))
-            Wx_lsh_matmul = lsh_matmul_module.lsh_matmul(tf.reshape(x, [-1, 1]), W)
+            Wx_lsh_matmul = lsh_matmul(tf.reshape(x, [-1, 1]), W)
             
             grad_W_tf = tf.gradients(Wx_tf, W)
             grad_W_lsh_matmul = tf.gradients(Wx_lsh_matmul, W)
@@ -61,7 +64,7 @@ class LshMatmulTest(unittest.TestCase):
             self.assertEqual(gradient_tf[0][1][1], gradient_lsh_matmul[0][1][1])
     
     def test_lshMatMulRandom(self):
-        with tf.Session(''):
+        with self.test_session():
             n = 4
             m = 5
             
@@ -70,11 +73,11 @@ class LshMatmulTest(unittest.TestCase):
                 W_rand = np.random.randint(10, size = (m, n))
                 result_rand = np.dot(W_rand, x_rand)
                 
-                result = lsh_matmul_module.lsh_matmul(x_rand, W_rand).eval()
+                result = lsh_matmul(x_rand, W_rand).eval()
                 np.testing.assert_array_equal(result, result_rand)
     
     def test_lshMatMulGradientXRandom(self):
-        with tf.Session('') as sess:
+        with self.test_session() as sess:
             n = 4
             m = 5
             
@@ -82,7 +85,7 @@ class LshMatmulTest(unittest.TestCase):
             W = tf.placeholder(tf.float32, shape = (m, n))
             
             Wx_tf = tf.matmul(W, tf.reshape(x, [-1, 1]))
-            Wx_lsh_matmul = lsh_matmul_module.lsh_matmul(tf.reshape(x, [-1, 1]), W)
+            Wx_lsh_matmul = lsh_matmul(tf.reshape(x, [-1, 1]), W)
             
             grad_x_tf = tf.gradients(Wx_tf, x)
             grad_x_lsh_matmul = tf.gradients(Wx_lsh_matmul, x)
@@ -97,7 +100,7 @@ class LshMatmulTest(unittest.TestCase):
                 np.testing.assert_array_equal(gradient_tf, gradient_lsh_matmul)
                 
     def test_lshMatMulGradientWRandom(self):
-        with tf.Session('') as sess:
+        with self.test_session() as sess:
             n = 4
             m = 5
             
@@ -105,7 +108,7 @@ class LshMatmulTest(unittest.TestCase):
             W = tf.placeholder(tf.float32, shape = (m, n))
             
             Wx_tf = tf.matmul(W, tf.reshape(x, [-1, 1]))
-            Wx_lsh_matmul = lsh_matmul_module.lsh_matmul(tf.reshape(x, [-1, 1]), W)
+            Wx_lsh_matmul = lsh_matmul(tf.reshape(x, [-1, 1]), W)
             
             grad_W_tf = tf.gradients(Wx_tf, W)
             grad_W_lsh_matmul = tf.gradients(Wx_lsh_matmul, W)
@@ -121,4 +124,4 @@ class LshMatmulTest(unittest.TestCase):
                   
                 
 if __name__ == '__main__':
-    unittest.main()
+    test.main()
