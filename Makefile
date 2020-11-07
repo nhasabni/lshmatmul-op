@@ -16,8 +16,7 @@ LDFLAGS = -shared ${TF_LFLAGS}
 
 #ZERO_OUT_TARGET_LIB = tensorflow_zero_out/python/ops/_zero_out_ops.so
 LSH_MATMUL_TARGET_LIB = tensorflow_lsh_matmul/python/ops/_lsh_matmul_op.so
-LSH_MATMUL_GRAD_TARGET_LIB = tensorflow_lsh_matmul/python/ops/lsh_matmul_grad.so
-#LSH_MATMUL_GRAD_TARGET_LIB = lsh_matmul/python/ops/_lsh_matmul_grad_op.so
+LSH_MATMUL_GRAD_TARGET_LIB = tensorflow_lsh_matmul/python/ops/_lsh_matmul_grad.so
 
 # zero_out op for CPU
 #zero_out_op: $(ZERO_OUT_TARGET_LIB)
@@ -41,7 +40,7 @@ $(LSH_MATMUL_TARGET_LIB): $(LSH_MATMUL_SRCS)
 $(LSH_MATMUL_GRAD_TARGET_LIB): $(LSH_MATMUL_GRAD_SRCS)
 	$(CXX) $(CFLAGS) -o $@ $^ ${LDFLAGS}
 
-lsh_matmul_test: tensorflow_lsh_matmul/python/ops/lsh_matmul_op_test.py tensorflow_lsh_matmul/python/ops/lsh_matmul_op.py $(LSH_MATMUL_TARGET_LIB) $(LSH_MATMUL_GRAD_TARGET_LIB)
+lsh_matmul_test: tensorflow_lsh_matmul/python/ops/lsh_matmul_op_test.py tensorflow_lsh_matmul/python/ops/lsh_matmul_op.py tensorflow_lsh_matmul/python/ops/lsh_matmul_grad_op.py $(LSH_MATMUL_TARGET_LIB) $(LSH_MATMUL_GRAD_TARGET_LIB)
 	$(PYTHON_BIN_PATH) tensorflow_lsh_matmul/python/ops/lsh_matmul_op_test.py
 
 lsh_matmul_pip_pkg: $(LSH_MATMUL_TARGET_LIB) $(LSH_MATMUL_GRAD_TARGET_LIB)
@@ -49,4 +48,3 @@ lsh_matmul_pip_pkg: $(LSH_MATMUL_TARGET_LIB) $(LSH_MATMUL_GRAD_TARGET_LIB)
 
 clean:
 	rm -f $(LSH_MATMUL_TARGET_LIB) $(LSH_MATMUL_GRAD_TARGET_LIB)
-    #rm -f $(LSH_MATMUL_TARGET_LIB) $(LSH_MATMUL_GRAD_TARGET_LIB)

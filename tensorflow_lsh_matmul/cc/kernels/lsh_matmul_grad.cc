@@ -69,4 +69,4 @@ public:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("lshMatmulGrad").Device(DEVICE_CPU), lshMatmulGradOp);
+REGISTER_KERNEL_BUILDER(Name("LshMatmulGrad").Device(DEVICE_CPU), lshMatmulGradOp);

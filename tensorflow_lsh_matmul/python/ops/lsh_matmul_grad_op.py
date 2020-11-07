@@ -7,12 +7,16 @@ import tensorflow as tf
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import sparse_ops
-inner_product_grad_module = tf.load_op_library('./lsh_matmul_grad.so')
+from tensorflow.python.framework import load_library
+from tensorflow.python.platform import resource_loader
+
+#inner_product_grad_module = tf.load_op_library('./_lsh_matmul_grad.so')
+lsh_matmul_grad_module=load_library.load_op_library(
+    resource_loader.get_path_to_datafile('_lsh_matmul_grad.so'))
 
 
 @ops.RegisterGradient("LshMatmul")
-#def _lsh_matmul_grad_cc(op, grad):
-def lsh_matmul_grad(op, grad):
+def _lsh_matmul_grad(op, grad):
     """
     The gradient for `lsh_matmul` using the operation implemented in C++.
     
