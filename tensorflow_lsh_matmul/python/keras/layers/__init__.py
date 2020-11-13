@@ -1,0 +1,1 @@
+from tensorflow_lsh_matmul.python.keras.layers.lsh_matmul import LSHMatMulLayer
