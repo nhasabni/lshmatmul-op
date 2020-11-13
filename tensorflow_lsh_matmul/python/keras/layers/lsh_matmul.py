@@ -129,7 +129,7 @@ class LSHMatMulLayer(Layer):
 
   def call(self, inputs):
     inputs = ops.convert_to_tensor(inputs)
-    # Zafar: change the mat_mul here
+
     #outputs = gen_user_ops.mat_mul(inputs, self.kernel)
     outputs = lsh_matmul(inputs, self.kernel)
     if self.use_bias:
