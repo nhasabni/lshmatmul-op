@@ -1,4 +1,5 @@
 from tensorflow.python.framework import ops
+from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import tensor_shape
 from tensorflow.python.keras import activations
 from tensorflow.python.keras import constraints
@@ -79,6 +80,9 @@ class LSHMatMulLayer(Layer):
                activity_regularizer=None,
                kernel_constraint=None,
                bias_constraint=None,
+               bucketsize=128,
+               K=1,
+               L=1,
                **kwargs):
     if 'input_shape' not in kwargs and 'input_dim' in kwargs:
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
@@ -94,7 +98,9 @@ class LSHMatMulLayer(Layer):
     self.bias_regularizer = regularizers.get(bias_regularizer)
     self.kernel_constraint = constraints.get(kernel_constraint)
     self.bias_constraint = constraints.get(bias_constraint)
-
+    self.L=int(L)
+    self.K=int(K)
+    self.bucketsize=int(bucketsize)
     self.supports_masking = True
     self.input_spec = InputSpec(min_ndim=2)
 
@@ -125,13 +131,40 @@ class LSHMatMulLayer(Layer):
           trainable=True)
     else:
       self.bias = None
+    
+    #allocate hash tables
+    self.buckets = self.add_weight(
+          'buckets',
+          shape=[self.L, pow(2,self.K), self.bucketsize],
+          initializer=self.bias_initializer, # 
+          regularizer=self.bias_regularizer,
+          constraint=self.bias_constraint,
+          dtype=dtypes.int32,
+          trainable=True)
+    self.randBits =  self.add_weight(
+          'randbits',
+          shape=[self.L,self.K],
+          initializer=self.bias_initializer, # random odd numbers/initializer
+          regularizer=self.bias_regularizer,
+          constraint=self.bias_constraint,
+          dtype=dtypes.int16,
+          trainable=True)    
+    self.indices =  self.add_weight(
+          'indices',
+          shape=[self.L, self.K],
+          initializer=self.bias_initializer, # random odd numbers
+          regularizer=self.bias_regularizer,
+          constraint=self.bias_constraint,
+          dtype=dtypes.int32,
+          trainable=True)    
+   
     self.built = True
 
   def call(self, inputs):
     inputs = ops.convert_to_tensor(inputs)
 
     #outputs = gen_user_ops.mat_mul(inputs, self.kernel)
-    outputs = lsh_matmul(inputs, self.kernel)
+    outputs = lsh_matmul(inputs, self.buckets, self.indices, self.randBits, self.kernel)
     if self.use_bias:
       outputs = nn.bias_add(outputs, self.bias)
     if self.activation is not None:

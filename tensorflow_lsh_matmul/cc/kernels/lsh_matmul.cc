@@ -245,7 +245,12 @@ void Compute(OpKernelContext* ctx) override {
 /// \brief Implementation of an inner product operation.
 /// \param context
 
-
+/*
+  .Input("buckets: int32")
+  .Input("indices: int32")
+  .Input("randBits: int16")
+  .Input("weights: float") 
+  */
 class LshMatmulOp : public OpKernel {
 public:
   /// \brief Constructor.
@@ -259,13 +264,23 @@ public:
   void Compute(OpKernelContext* context) override {
     
     // some checks to be sure ...
-    DCHECK_EQ(2, context->num_inputs());
+    DCHECK_EQ(5, context->num_inputs());
     
     // get the input tensor
     const Tensor& input = context->input(0);
     
+    // buckets
+    const Tensor& buckets = context->input(1);
+    
+    // indices
+    const Tensor& indices = context->input(2);
+    
+    // randbits
+    const Tensor& randBits = context->input(3);
+    
+    
     // get the weight tensor
-    const Tensor& weights = context->input(1);
+    const Tensor& weights = context->input(4);
     
     // check shapes of input and weights
     const TensorShape& input_shape = input.shape();
@@ -287,6 +302,9 @@ public:
     // create output tensor
     Tensor* output = NULL;
     OP_REQUIRES_OK(context, context->allocate_output(0, output_shape, &output));
+    
+    
+    std::cout<<randBits.DebugString()<<std::endl;
     
     // get the corresponding Eigen tensors for data access
     auto input_tensor = input.matrix<float>();

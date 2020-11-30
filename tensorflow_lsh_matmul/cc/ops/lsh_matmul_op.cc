@@ -36,9 +36,13 @@ REGISTER_OP("LshMatmul")
         "complex128}")
     .SetShapeFn(shape_inference::MatMulShape);
 */
+//self.buckets, self.indices, self.randBits, 
 REGISTER_OP("LshMatmul")
   .Input("input: float")
-  .Input("weights: float")
+  .Input("buckets: int32")
+  .Input("indices: int32")
+  .Input("randbits: int16")
+  .Input("weights: float") 
   .Output("inner_product: float")
   .SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
     shape_inference::ShapeHandle input_shape;
