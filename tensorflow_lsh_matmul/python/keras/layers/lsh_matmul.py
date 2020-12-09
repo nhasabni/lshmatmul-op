@@ -1,7 +1,20 @@
-from tensorflow.keras import layers
+from tensorflow.python.framework import ops
+from tensorflow.python.framework import dtypes
+from tensorflow.python.framework import tensor_shape
+from tensorflow.python.keras import activations
+from tensorflow.python.keras import constraints
+from tensorflow.python.keras import initializers
+from tensorflow.python.keras import regularizers
+from tensorflow.keras.layers import Layer
+from tensorflow.python.keras.engine.input_spec import InputSpec
+from tensorflow.python.ops import nn
 
-#@tf_export('keras.layers.MyDense')
-class LSHDense(Layer):
+try:
+  from tensorflow_lsh_matmul.python.ops.lsh_matmul_op import lsh_matmul
+except ImportError:
+  from lsh_matmul_op import lsh_matmul
+
+class LSHMatMulLayer(Layer):
   """Just your regular densely-connected NN layer.
 
   `Dense` implements the operation:
@@ -67,11 +80,14 @@ class LSHDense(Layer):
                activity_regularizer=None,
                kernel_constraint=None,
                bias_constraint=None,
+               bucketsize=128,
+               K=1,
+               L=1,
                **kwargs):
     if 'input_shape' not in kwargs and 'input_dim' in kwargs:
       kwargs['input_shape'] = (kwargs.pop('input_dim'),)
 
-    super(LSHDense, self).__init__(
+    super(LSHMatMulLayer, self).__init__(
         activity_regularizer=regularizers.get(activity_regularizer), **kwargs)
     self.units = int(units)
     self.activation = activations.get(activation)
@@ -82,7 +98,9 @@ class LSHDense(Layer):
     self.bias_regularizer = regularizers.get(bias_regularizer)
     self.kernel_constraint = constraints.get(kernel_constraint)
     self.bias_constraint = constraints.get(bias_constraint)
-
+    self.L=int(L)
+    self.K=int(K)
+    self.bucketsize=int(bucketsize)
     self.supports_masking = True
     self.input_spec = InputSpec(min_ndim=2)
 
@@ -113,22 +131,40 @@ class LSHDense(Layer):
           trainable=True)
     else:
       self.bias = None
+    
+    #allocate hash tables
+    self.buckets = self.add_weight(
+          'buckets',
+          shape=[self.L, pow(2,self.K), self.bucketsize],
+          initializer=self.bias_initializer, # 
+          regularizer=self.bias_regularizer,
+          constraint=self.bias_constraint,
+          dtype=dtypes.int32,
+          trainable=True)
+    self.randBits =  self.add_weight(
+          'randbits',
+          shape=[self.L,self.K],
+          initializer=self.bias_initializer, # random odd numbers/initializer
+          regularizer=self.bias_regularizer,
+          constraint=self.bias_constraint,
+          dtype=dtypes.int16,
+          trainable=True)    
+    self.indices =  self.add_weight(
+          'indices',
+          shape=[self.L, self.K],
+          initializer=self.bias_initializer, # random odd numbers
+          regularizer=self.bias_regularizer,
+          constraint=self.bias_constraint,
+          dtype=dtypes.int32,
+          trainable=True)    
+   
     self.built = True
 
   def call(self, inputs):
     inputs = ops.convert_to_tensor(inputs)
-    rank = common_shapes.rank(inputs)
-    if rank > 2:
-      # Broadcasting is required for the inputs.
-      outputs = standard_ops.tensordot(inputs, self.kernel, [[rank - 1], [0]])
-      # Reshape the output back to the original ndim of the input.
-      if not context.executing_eagerly():
-        shape = inputs.get_shape().as_list()
-        output_shape = shape[:-1] + [self.units]
-        outputs.set_shape(output_shape)
-    else:
-      # Zafar: change the mat_mul here
-      outputs = gen_user_ops.mat_mul(inputs, self.kernel)
+
+    #outputs = gen_user_ops.mat_mul(inputs, self.kernel)
+    outputs = lsh_matmul(inputs, self.buckets, self.indices, self.randBits, self.kernel)
     if self.use_bias:
       outputs = nn.bias_add(outputs, self.bias)
     if self.activation is not None:
@@ -158,6 +194,6 @@ class LSHDense(Layer):
         'kernel_constraint': constraints.serialize(self.kernel_constraint),
         'bias_constraint': constraints.serialize(self.bias_constraint)
     }
-    base_config = super(LSHDense, self).get_config()
+    base_config = super(LSHMatMulLayer, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
 

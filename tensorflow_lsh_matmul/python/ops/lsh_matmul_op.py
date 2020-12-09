@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-"""Use zero_out ops in python."""
+"""Use lsh_matmul ops in python."""
+
 
 from __future__ import absolute_import
 from __future__ import division
@@ -23,5 +24,5 @@ from tensorflow.python.platform import resource_loader
 
 lsh_matmul_op = load_library.load_op_library(
     resource_loader.get_path_to_datafile('_lsh_matmul_op.so'))
-lsh_out = lsh_matmul_op.lsh_matmul
+lsh_matmul = lsh_matmul_op.lsh_matmul
 

@@ -34,9 +34,9 @@ Install the pip package as:
 ```bash
    pip3 install artifacts/*.whl
 ```
-Test lsh_matmul op as:
+Test LSHMatMul Keras layer as:
 ```bash
-TODO
+python examples/lsh_matmul_keras_test.py
 ```
 And you should see the output as:
 ```bash

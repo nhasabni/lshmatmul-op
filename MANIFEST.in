@@ -1,1 +1,2 @@
 recursive-include tensorflow_zero_out *.so
+recursive-include tensorflow_lsh_matmul *.so
