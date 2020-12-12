@@ -13,6 +13,7 @@ try:
   from tensorflow_lsh_matmul.python.ops.lsh_matmul_op import lsh_matmul
 except ImportError:
   from lsh_matmul_op import lsh_matmul
+from tensorflow_lsh_matmul.python.keras.layers.initializers import *
 
 class LSHMatMulLayer(Layer):
   """Just your regular densely-connected NN layer.
@@ -94,6 +95,8 @@ class LSHMatMulLayer(Layer):
     self.use_bias = use_bias
     self.kernel_initializer = initializers.get(kernel_initializer)
     self.bias_initializer = initializers.get(bias_initializer)
+    self.srp_rand_bits_initializer = SRPRandBitsInitializer
+    self.srp_indices_initializer = SRPIndicesInitializer
     self.kernel_regularizer = regularizers.get(kernel_regularizer)
     self.bias_regularizer = regularizers.get(bias_regularizer)
     self.kernel_constraint = constraints.get(kernel_constraint)
@@ -143,16 +146,16 @@ class LSHMatMulLayer(Layer):
           trainable=True)
     self.randBits =  self.add_weight(
           'randbits',
-          shape=[self.L,self.K],
-          initializer=self.bias_initializer, # random odd numbers/initializer
+          shape=[self.L, self.K, last_dim],
+          initializer=self.srp_rand_bits_initializer, # random odd numbers/initializer
           regularizer=self.bias_regularizer,
           constraint=self.bias_constraint,
           dtype=dtypes.int16,
           trainable=True)    
     self.indices =  self.add_weight(
           'indices',
-          shape=[self.L, self.K],
-          initializer=self.bias_initializer, # random odd numbers
+          shape=[self.L, self.K, last_dim],
+          initializer=self.srp_indices_initializer, # random odd numbers
           regularizer=self.bias_regularizer,
           constraint=self.bias_constraint,
           dtype=dtypes.int32,

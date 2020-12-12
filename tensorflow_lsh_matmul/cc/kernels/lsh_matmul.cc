@@ -304,7 +304,8 @@ public:
     OP_REQUIRES_OK(context, context->allocate_output(0, output_shape, &output));
     
     
-    std::cout<<randBits.DebugString()<<std::endl;
+    std::cout<<"Randbits is:" << randBits.DebugString()<<std::endl;
+    std::cout<<"Indices is:" << indices.DebugString()<<std::endl;
     
     // get the corresponding Eigen tensors for data access
     auto input_tensor = input.matrix<float>();
