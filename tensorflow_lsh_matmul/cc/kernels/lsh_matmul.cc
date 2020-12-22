@@ -311,7 +311,36 @@ public:
     auto input_tensor = input.matrix<float>();
     auto weights_tensor = weights.matrix<float>();
     auto output_tensor = output->matrix<float>();
+    //SG - start changes to implement hash based multiplication
+    /*
+    Steps:
+    1- compute hash vector (K*L 1's & 0's)
+    2- convert hash vector to a L hash table indices (hashesToIndex)
+    3- Retrieve all neurons ids from L hash table (big list) (hashtable->retrieveraw)
+    4- Select a subset of neurons out of all those returned to statisfy sparsity ratio (multiple methods - e.g. random)
+    5- multiply (dot product) of these subset of activations by the asociated weights 
+    6- output is the result of multiplication
+    */
+     
+     //step 1 compute hash vector
+     int *hashvector; //ouput hash vector
+     //input is the input array of neurons ids
+
+     //Randbits shape is: [L, K, last_dim]
+     int K= randBits.shape().dim_size(1);
+     int L= randBits.shape().dim_size(0);
+     int length = input->shape().dim_size(0);
+      
+     hashvector = getSRPHash(input, length, K, L);
+    //debug
+    for(int h=0;h<K*L;h++)
+      std::cout<<"hashvector:" << hashvector[h];
+    std::cout<<std::endl;
     
+    // end of step 1
+
+    
+
     for (int i = 0; i < output->shape().dim_size(0); i++) {
       output_tensor(i, 0) = 0;
       for (int j = 0; j < weights.shape().dim_size(1); j++) {
@@ -319,6 +348,30 @@ public:
       }
     }
   }
+
+  int * getSRPHash(input, int length, int K, int L){ 
+    
+    //I need to pass randbits and indices are now tensors don't know type of argument to pass here
+    //but I don't know the type
+    //since ranBits is tensor I am accessing randBits[i][j] as randBits(i,j)
+    
+    int numhashes = K*L;
+    int samSize = length; //sample size is set to length - no sampling for now
+    int *hashes = new int[numhashes];    
+ 
+    for (int i = 0; i < numhashes; i++) {
+        double s = 0;
+        for (int j = 0; j < samSize; j++) {
+            float v = input[indices(i,j)]; //probably not a correct way to get value of item in the input tensor
+            if (randBits(i,j) >= 0) {
+                s += v;
+            } else {
+                s -= v;
+            }
+        }
+        hashes[i] = (s >= 0 ? 0 : 1);
+    }
+    return hashes;
 };
 
 REGISTER_KERNEL_BUILDER(Name("LshMatmul").Device(DEVICE_CPU), LshMatmulOp);
