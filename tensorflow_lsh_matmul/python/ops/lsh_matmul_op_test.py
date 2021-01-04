@@ -4,6 +4,7 @@ import numpy as np
 from tensorflow.python.platform import test
 
 
+
 try:
   from tensorflow_lsh_matmul.python.ops.lsh_matmul_op import lsh_matmul
 except ImportError:

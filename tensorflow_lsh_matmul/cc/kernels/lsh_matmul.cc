@@ -245,16 +245,53 @@ void Compute(OpKernelContext* ctx) override {
 /// \brief Implementation of an inner product operation.
 /// \param context
 
-/*
+ /*
   .Input("buckets: int32")
   .Input("indices: int32")
   .Input("randBits: int16")
   .Input("weights: float") 
   */
+//<template>  
 class LshMatmulOp : public OpKernel {
 public:
   /// \brief Constructor.
   /// \param context
+    
+    int * getSRPHash(const Tensor& input, const Tensor& indices, const Tensor& randBits, int length, int K, int L){ 
+    
+    //I need to pass randbits and indices are now tensors don't know type of argument to pass here
+    //but I don't know the type
+    //since ranBits is tensor I am accessing randBits[i][j] as randBits(i,j)
+    
+    int numhashes = K*L;
+    int samSize = length; //sample size is set to length - no sampling for now
+    int *hashes = new int[numhashes];   
+
+
+    
+    //auto input_tensor = input.matrix<float>();
+    //auto rand_indices = indices.matrix<int32>();
+    //auto rand_bits = randBits.matrix<int16>();
+    
+    for (int i = 0; i < L; i++) {
+        for (int k = 0; k < K; k++) 
+        {
+            double s = 0;
+            for (int j = 0; j < samSize; j++) {
+                float v = input.tensor<float,2>()((indices.tensor<int32,3>()(i,k,j),0)); //probably not a correct way to get value of item in the input tensor
+                if (randBits.tensor<int16,3>()(i,k,j) >= 0)
+                {
+                    s += v;
+                } else {
+                    s -= v;
+                }
+            }
+            hashes[i*K+k] = (s >= 0 ? 0 : 1);
+        }
+    }
+    return hashes;
+  }
+  
   explicit LshMatmulOp(OpKernelConstruction* context) : OpKernel(context) {
     
   }
@@ -288,32 +325,64 @@ public:
     
     // check input is a standing vector
     DCHECK_EQ(input_shape.dims(), 2);
-    DCHECK_EQ(input_shape.dim_size(1), 1);
+    //DCHECK_EQ(input_shape.dim_size(1), 1); //M=1
     
     // check weights is matrix of correct size
     DCHECK_EQ(weights_shape.dims(), 2);
-    DCHECK_EQ(input_shape.dim_size(0), weights_shape.dim_size(1));
+    DCHECK_EQ(input_shape.dim_size(0), weights_shape.dim_size(1)); //K
     
     // create output shape
     TensorShape output_shape;
-    output_shape.AddDim(weights_shape.dim_size(0));
-    output_shape.AddDim(1);
+    output_shape.AddDim(weights_shape.dim_size(0)); //N
+    output_shape.AddDim(1); //M
             
     // create output tensor
     Tensor* output = NULL;
     OP_REQUIRES_OK(context, context->allocate_output(0, output_shape, &output));
     
     
-    std::cout<<randBits.DebugString()<<std::endl;
+    std::cout<<"Randbits is:" << randBits.DebugString()<<std::endl;
+    std::cout<<"Indices is:" << indices.DebugString()<<std::endl;
     
     // get the corresponding Eigen tensors for data access
     auto input_tensor = input.matrix<float>();
     auto weights_tensor = weights.matrix<float>();
     auto output_tensor = output->matrix<float>();
+    //SG - start changes to implement hash based multiplication
+    /*
+    Steps:
+    1- compute hash vector (K*L 1's & 0's)
+    2- convert hash vector to a L hash table indices (hashesToIndex)
+    3- Retrieve all neurons ids from L hash table (big list) (hashtable->retrieveraw)
+    4- Select a subset of neurons out of all those returned to statisfy sparsity ratio (multiple methods - e.g. random)
+    5- multiply (dot product) of these subset of activations by the asociated weights 
+    6- output is the result of multiplication
+    */
+     
+     //step 1 compute hash vector
+     int *hashvector; //ouput hash vector
+     //input is the input array of neurons ids
+
+     //Randbits shape is: [L, K, last_dim]
+     int K = randBits.shape().dim_size(1);
+     int L = randBits.shape().dim_size(0);
+     int length = input.shape().dim_size(0);
+      
+     // should you send input tensor? 
+     hashvector = getSRPHash(input, indices, randBits, length, K, L);
     
-    for (int i = 0; i < output->shape().dim_size(0); i++) {
+    //debug
+    for(int h=0;h<K*L;h++)
+      std::cout<<"hashvector:" << hashvector[h]<<std::endl;
+    std::cout<<std::endl;
+    
+    // end of step 1
+
+    
+
+    for (int i = 0; i < output->shape().dim_size(0); i++) { //N
       output_tensor(i, 0) = 0;
-      for (int j = 0; j < weights.shape().dim_size(1); j++) {
+      for (int j = 0; j < weights.shape().dim_size(1); j++) { //K
         output_tensor(i, 0) += weights_tensor(i, j)*input_tensor(j, 0);
       }
     }

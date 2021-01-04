@@ -8,7 +8,6 @@ using namespace tensorflow;
 /// Note that this operation is used in Python to register the gradient as
 /// this is not possible in C*+ right now.
 /// \param context
-/// \author David Stutz
 class lshMatmulGradOp : public OpKernel {
 public:
   /// \brief Constructor.
@@ -37,8 +36,8 @@ public:
     TensorShape input_shape = input.shape();
     TensorShape weights_shape = weights.shape();
     
-    DCHECK_EQ(input_shape.dim_size(0), weights_shape.dim_size(1));
-    DCHECK_EQ(weights_shape.dim_size(0), grad.shape().dim_size(0));
+    DCHECK_EQ(input_shape.dim_size(0), weights_shape.dim_size(1)); //input = KM
+    DCHECK_EQ(weights_shape.dim_size(0), grad.shape().dim_size(0)); // weights = NK
     
     // create output tensors
     Tensor* grad_input = NULL;
@@ -53,17 +52,18 @@ public:
     auto grad_input_tensor = grad_input->matrix<float>();
     auto grad_weights_tensor = grad_weights->matrix<float>();
     
-    // doign it manually for ismplicity
-    for (int i = 0; i < weights_shape.dim_size(0); i++) {
+    // doing it manually for ismplicity
+    for (int i = 0; i < weights_shape.dim_size(0); i++) { //K -> MN x (KN)T 
       grad_input_tensor(i, 0) = 0;
-      for (int j = 0; j < grad.shape().dim_size(0); j++) {
+      for (int j = 0; j < grad.shape().dim_size(0); j++) { //N
         grad_input_tensor(i, 0) += grad_tensor(j, 0)*weights_tensor(j, i);
       }
     }
     
-    for (int i = 0; i < weights_shape.dim_size(0); i++) {
-      for (int j = 0; j < weights_shape.dim_size(1); j++) {
-        grad_weights_tensor(i, j) = grad_tensor(i, 0)*input_tensor(j, 0);;
+    
+    for (int i = 0; i < weights_shape.dim_size(0); i++) { //K -> (MK)T x MN
+      for (int j = 0; j < weights_shape.dim_size(1); j++) { //M
+        grad_weights_tensor(i, j) = grad_tensor(i, 0)*input_tensor(j, 0);
       }
     }
   }
