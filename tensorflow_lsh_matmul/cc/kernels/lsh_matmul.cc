@@ -14,10 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#define EIGEN_USE_THREADS
+
 #include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
-#include "tensorflow/core/platform/default/logging.h"
+#include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/framework/shape_inference.h"
+#include "tensorflow/core/platform/default/logging.h"
 
 using namespace tensorflow;
 
@@ -251,45 +255,41 @@ void Compute(OpKernelContext* ctx) override {
   .Input("randBits: int16")
   .Input("weights: float") 
   */
-//<template>  
+template <typename Device, typename T>  
 class LshMatmulOp : public OpKernel {
 public:
   /// \brief Constructor.
   /// \param context
     
-    int * getSRPHash(const Tensor& input, const Tensor& indices, const Tensor& randBits, int length, int K, int L){ 
+    void getSRPHash (const Tensor& input, const Tensor& indices,
+                    const Tensor& randBits, int length, int K, int L, Tensor& hashes){ 
     
     //I need to pass randbits and indices are now tensors don't know type of argument to pass here
     //but I don't know the type
     //since ranBits is tensor I am accessing randBits[i][j] as randBits(i,j)
     
-    int numhashes = K*L;
     int samSize = length; //sample size is set to length - no sampling for now
-    int *hashes = new int[numhashes];   
 
-
-    
-    //auto input_tensor = input.matrix<float>();
-    //auto rand_indices = indices.matrix<int32>();
-    //auto rand_bits = randBits.matrix<int16>();
+    auto input_tensor = input.tensor<T, 2>();
+    auto indices_tensor = indices.tensor<int32, 3>();
+    auto rand_bits_tensor = randBits.tensor<int16, 3>();
+    auto hashes_tensor = hashes.shaped<int32, 2>({L, K});
     
     for (int i = 0; i < L; i++) {
-        for (int k = 0; k < K; k++) 
-        {
-            double s = 0;
-            for (int j = 0; j < samSize; j++) {
-                float v = input.tensor<float,2>()((indices.tensor<int32,3>()(i,k,j),0)); //probably not a correct way to get value of item in the input tensor
-                if (randBits.tensor<int16,3>()(i,k,j) >= 0)
-                {
-                    s += v;
-                } else {
-                    s -= v;
-                }
+      for (int k = 0; k < K; k++) {
+        double s = 0;
+        for (int j = 0; j < samSize; j++) {
+            float v = input_tensor(indices_tensor(i,k,j), 0); //probably not a correct way to get value of item in the input tensor
+            if (rand_bits_tensor(i,k,j) >= 0)
+            {
+                s += v;
+            } else {
+                s -= v;
             }
-            hashes[i*K+k] = (s >= 0 ? 0 : 1);
         }
+        hashes_tensor(i, k) = (s >= 0 ? 0 : 1);
+      }
     }
-    return hashes;
   }
   
   explicit LshMatmulOp(OpKernelConstruction* context) : OpKernel(context) {
@@ -360,7 +360,6 @@ public:
     */
      
      //step 1 compute hash vector
-     int *hashvector; //ouput hash vector
      //input is the input array of neurons ids
 
      //Randbits shape is: [L, K, last_dim]
@@ -369,11 +368,14 @@ public:
      int length = input.shape().dim_size(0);
       
      // should you send input tensor? 
-     hashvector = getSRPHash(input, indices, randBits, length, K, L);
+     // TODO: Should hashes be 2D tensor of shape {L, K} or 1D tensor of shape
+     // {L * K}
+    Tensor hashes(DT_INT32, {L * K}); 
+    getSRPHash(input, indices, randBits, length, K, L, hashes);
     
     //debug
-    for(int h=0;h<K*L;h++)
-      std::cout<<"hashvector:" << hashvector[h]<<std::endl;
+    for(int h=0; h<K*L; h++)
+      std::cout<<"hashvector:" << hashes.flat<int32>()(h)<<std::endl;
     std::cout<<std::endl;
     
     // end of step 1
@@ -389,15 +391,11 @@ public:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("LshMatmul").Device(DEVICE_CPU), LshMatmulOp);
+#define REGISTER_CPU_KERNEL(T)                     \
+  REGISTER_KERNEL_BUILDER(Name("LshMatmul")        \
+                          .Device(DEVICE_CPU)      \
+                          .TypeConstraint<T>("T"), \
+                          LshMatmulOp<CPUDevice, T>);
 
-#ifdef ENABLE_MKL
-TF_CALL_float(REGISTER_CPU);
-
-#ifndef INTEL_MKL_DNN_ONLY
-TF_CALL_double(REGISTER_CPU);
-TF_CALL_complex64(REGISTER_CPU);
-TF_CALL_complex128(REGISTER_CPU);
-#endif  // !INTEL_MKL_DNN_ONLY
-#endif  // ENABLE_MKL
+TF_CALL_float(REGISTER_CPU_KERNEL);
 

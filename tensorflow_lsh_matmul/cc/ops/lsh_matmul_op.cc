@@ -38,12 +38,13 @@ REGISTER_OP("LshMatmul")
 */
 //self.buckets, self.indices, self.randBits, 
 REGISTER_OP("LshMatmul")
-  .Input("input: float")
+  .Input("input: T")
   .Input("buckets: int32")
   .Input("indices: int32")
   .Input("randbits: int16")
-  .Input("weights: float") 
-  .Output("inner_product: float")
+  .Input("weights: T") 
+  .Output("inner_product: T")
+  .Attr("T: {float}")
   .SetShapeFn([](::tensorflow::shape_inference::InferenceContext* c) {
     shape_inference::ShapeHandle input_shape;
     TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 2, &input_shape));
