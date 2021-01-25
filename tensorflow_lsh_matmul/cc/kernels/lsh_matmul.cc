@@ -247,11 +247,31 @@ class LshMatmulOp : public OpKernel {
 public:
 	/// \brief Constructor.
 	/// \param context
-	void hashesToIndex(Tensor& hashes, int K, int L, Tensor& indices) {
-	
-		auto hashes_tensor = hashes.tensor<int32, 2>(); //int indices = new int[_L]; should be a 1D tensor, not 2D.
-		auto indices_tensor = hashes.shaped<int32, 1>({L});
-		
+	/// 
+	/// 
+	void retrieveRaw(const Tensor& indices, const Tensor& bucket, int L, int bucket_size, Tensor& rawResults)
+	{
+		auto indices_tensor = indices.flat<int32>();
+		auto bucket_tensor = bucket.tensor<int32, 3>(); // shape=[self.L, pow(2,self.K), self.bucketsize],
+		auto rawResults_tensor = rawResults.shaped<int32, 2>({ L, bucket_size }); //int indices = new int[_L]; should be a 1D tensor, not 2D.
+
+
+
+		for (int i = 0; i < L; i++)
+		{
+
+			for (int j = 0; j < bucket_size; j++)
+			{
+				rawResults_tensor(i, j) = bucket_tensor(i, indices_tensor(i), j);
+			}
+
+		}
+	}
+	void hashesToIndex(const Tensor& hashes, int K, int L, Tensor& indices) {
+
+		auto hashes_tensor = hashes.shaped<int32, 2>({ L, K }); //int indices = new int[_L]; should be a 1D tensor, not 2D.
+		auto indices_tensor = indices.flat<int32>();
+
 		for (int i = 0; i < L; i++) {
 			unsigned int index = 0;
 			for (int k = 0; k < K; k++) {
@@ -260,8 +280,9 @@ public:
 					unsigned int h = hashes_tensor(i, k);
 					index += h << (K - 1 - k);
 				}
-				indices_tensor(i) = index;
+
 			}
+			indices_tensor(i) = index;
 		}
 	}
 	void getSRPHash(const Tensor& input, const Tensor& indices,
@@ -360,7 +381,6 @@ public:
 		3- Retrieve all neurons ids from L hash table (big list) (hashtable->retrieveraw)
 		4- Select a subset of neurons out of all those returned to statisfy sparsity ratio (multiple methods - e.g. random)
 		5- multiply (dot product) of these subset of activations by the asociated weights
-		6- output is the result of multiplication
 		*/
 
 		//step 1 compute hash vector
@@ -370,6 +390,7 @@ public:
 		int K = randBits.shape().dim_size(1);
 		int L = randBits.shape().dim_size(0);
 		int length = input.shape().dim_size(0);
+		int bucket_size = buckets.shape().dim_size(2);
 
 		// should you send input tensor? 
 		// TODO: Should hashes be 2D tensor of shape {L, K} or 1D tensor of shape
@@ -387,6 +408,15 @@ public:
 		// step2:  convert hash vector to a L hash table indices (hashesToIndex)
 		Tensor indices1D(DT_INT32, { L });
 		hashesToIndex(hashes, L, K, indices1D);
+		// end of step 2
+
+		// step 3 Retrieve all neurons ids from L hash table(big list) (hashtable->retrieveraw)
+		Tensor rawResults(DT_INT32, { L * bucket_size }); //shaped<int32, 2>({L, bucket_size})
+		retrieveRaw(indices1D, buckets, L, bucket_size, rawResults);
+
+		// end of step 4
+
+		//Step 4- Select a subset of neurons out of all those returned to statisfy sparsity ratio (multiple methods - e.g. random)
 
 		for (int i = 0; i < output->shape().dim_size(0); i++) { //N
 			output_tensor(i, 0) = 0;
