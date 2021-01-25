@@ -118,46 +118,7 @@ class MklMatMulOp : public OpKernel {
 	return rawResults;
   }
 
-  int getCandidates(int **actives) {
-	for(int i = 0; i < _L; i++) {
-	  if(actives[i] == NULL) {
-		continue;
-	  }
-	  else {
-		for(int j = 0; j < BUCKETSIZE; j++) {
-		  int tempID = actives[i][j] - 1;
-		  if(tempID >= 0)
-			counts[tempID] += 1;
-		  else
-			break;
-		}
-	  }
-	}
 
-	if(counts.size()<1500){
-	  srand(time(NULL));
-	  int start = rand() % _noOfNodes;
-	  for(int i = start; i < _noOfNodes; i++) {
-		if(counts.size() >= 1000)
-		  break;
-		if(counts.count(_randNode[i]) == 0)
-		  counts[_randNode[i]] = 0;
-	  }
-
-
-	  if(counts.size() < 1000) {
-		for(int i = 0; i < _noOfNodes; i++) {
-		  if(counts.size() >= 1000)
-			break;
-		  if(counts.count(_randNode[i]) == 0)
-			counts[_randNode[i]] = 0;
-		}
-	  }
-	}
-
-	len = counts.size();
-	return len;
-  }
 };
 
 void Compute(OpKernelContext* ctx) override {
@@ -249,6 +210,52 @@ public:
 	/// \param context
 	/// 
 	/// 
+	
+	/*
+	int getCandidates(const Tensor& actives, int L, int bucket_size, Tensor& counts)
+	{
+		auto counts_tensor = indices.flat<int32,2>();
+		auto actives_tensor = actives.shaped<int32, 2>({ L, bucket_size }); //int indices = new int[_L]; should be a 1D tensor, not 2D.
+		for (int i = 0; i < L; i++) {
+			if (actives[i] == NULL) {
+				continue;
+			}
+			else {
+				for (int j = 0; j < bucket_size; j++) {
+					int tempID = actives[i][j] - 1;
+					if (tempID >= 0)
+						counts[tempID] += 1;
+					else
+						break;
+				}
+			}
+		}
+
+		if (counts.size() < 1500) {
+			srand(time(NULL));
+			int start = rand() % _noOfNodes;
+			for (int i = start; i < _noOfNodes; i++) {
+				if (counts.size() >= 1000)
+					break;
+				if (counts.count(_randNode[i]) == 0)
+					counts[_randNode[i]] = 0;
+			}
+
+
+			if (counts.size() < 1000) {
+				for (int i = 0; i < _noOfNodes; i++) {
+					if (counts.size() >= 1000)
+						break;
+					if (counts.count(_randNode[i]) == 0)
+						counts[_randNode[i]] = 0;
+				}
+			}
+		}
+
+		len = counts.size();
+		return len;
+	}*/
+
 	void retrieveRaw(const Tensor& indices, const Tensor& bucket, int L, int bucket_size, Tensor& rawResults)
 	{
 		auto indices_tensor = indices.flat<int32>();
@@ -414,9 +421,10 @@ public:
 		Tensor rawResults(DT_INT32, { L * bucket_size }); //shaped<int32, 2>({L, bucket_size})
 		retrieveRaw(indices1D, buckets, L, bucket_size, rawResults);
 
-		// end of step 4
+		// end of step 3
 
 		//Step 4- Select a subset of neurons out of all those returned to statisfy sparsity ratio (multiple methods - e.g. random)
+
 
 		for (int i = 0; i < output->shape().dim_size(0); i++) { //N
 			output_tensor(i, 0) = 0;
